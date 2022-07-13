@@ -27,8 +27,10 @@ const boards = ref<Partial<Board>[]>([
 </script>
 
 <template>
-  <h1 class="text-3xl mb-5">Boards</h1>
-  <div class="flex">
+  <AppPageHeading>Boards</AppPageHeading>
+  <div
+    class="grid grid-cols-[20rem,20rem,20rem,20rem] overflow-auto gap-4 pb-4"
+  >
     <BoardCard v-for="board in boards" :key="board.id" :board="board" />
     <button class="text-gray-500" @click="createBoard(newBoardTemplate)">
       <span>New Board +</span>
