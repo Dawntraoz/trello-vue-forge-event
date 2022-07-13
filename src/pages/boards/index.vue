@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Board } from "@/types";
 import { ref } from "vue";
+
 const boards = ref<Partial<Board>[]>([
   {
     id: "1",
@@ -32,7 +33,7 @@ const boards = ref<Partial<Board>[]>([
     class="grid grid-cols-[20rem,20rem,20rem,20rem] overflow-auto gap-4 pb-4"
   >
     <BoardCard v-for="board in boards" :key="board.id" :board="board" />
-    <button class="text-gray-500" @click="createBoard(newBoardTemplate)">
+    <button class="text-gray-500" @click="createBoard()">
       <span>New Board +</span>
     </button>
   </div>
