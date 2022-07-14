@@ -1,45 +1,66 @@
 <script setup lang="ts">
-import { useBase64, useDropZone } from "@vueuse/core";
-import { ref } from "vue";
+import { ref, computed } from "vue";
+import { useDropZone, useBase64 } from "@vueuse/core";
 
-const dropzoneEl = ref<HTMLElement | null>(null);
-const file = ref();
+import use8baseStorage from "@/composables/use8baseStorage";
 
-const { base64: url } = useBase64(file);
-const { isOverDropZone } = useDropZone(dropzoneEl, (files) => {
-  if (!files) return;
-  file.value = files[0];
-});
+const props = defineProps<{
+  image?: string;
+  loading?: boolean;
+}>();
 
-const onFileChange = (e: any) => {
-  file.value = e.target.files[0];
+const emit = defineEmits<{
+  (e: "upload", payload: { id: string }): void;
+}>();
+
+const image = ref<string | File | null | undefined>(props.image);
+const dropZoneRef = ref(null);
+const { base64 } = useBase64(image);
+const uploadingToFilestack = ref(false);
+
+const src = computed(() =>
+  typeof image.value === "string" ? image.value : base64.value
+);
+
+const onFileSelect = (e: Event) => {
+  handleFiles((e.target as HTMLInputElement).files);
 };
-const reset = () => {
-  file.value = null;
+const onDrop = (files: File[] | null) => {
+  handleFiles(files);
+};
+
+const { uploadAsset } = use8baseStorage();
+const { isOverDropZone } = useDropZone(dropZoneRef, onDrop);
+
+const handleFiles = async (files: FileList | File[] | null) => {
+  if (!files) return;
+  image.value = files[0];
+  uploadingToFilestack.value = true;
+  const res = await uploadAsset(files[0]);
+  emit("upload", res?.data.fileCreate);
+  uploadingToFilestack.value = false;
 };
 </script>
 
 <template>
   <div
-    ref="dropzoneEl"
-    class="relative w-[300px] h-[200px] flex m-4"
+    class="bg-gray-100 p-2 flex justify-center items-center border-2 border-gray-100 relative"
     :class="{
-      border: isOverDropZone,
-      'bg-orange-100': isOverDropZone,
-      'border-orange-400': isOverDropZone,
+      'border-blue-200': isOverDropZone,
+      'border-2': isOverDropZone,
     }"
-    style="background: #3332"
+    ref="dropZoneRef"
   >
-    <div class="m-auto opacity-50">Drop a image over or select</div>
-    <div v-if="url" class="absolute left-0 top-0 bottom-0 right-0 object-cover">
-      <img :src="url" class="h-full" />
-    </div>
-    <input
-      class="absolute z-1 left-0 top-0 bottom-0 right-0 opacity-0"
-      type="file"
-      accept="image/*"
-      @input="onFileChange"
-    />
+    <label class="absolute top-0 left-0 right-0 bottom-0 block">
+      <input
+        accept="image/png, image/jpeg"
+        class="hidden"
+        type="file"
+        @change="onFileSelect"
+      />
+    </label>
+    <AppImage v-if="image" :src="src" />
+    <template v-else>{{ "Click or drop to upload image" }}</template>
+    <AppLoader v-if="loading || uploadingToFilestack" :overlay="true" />
   </div>
-  <button @click="reset">Reset</button>
 </template>

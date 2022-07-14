@@ -11,7 +11,7 @@ const alerts = useAlerts();
 const props = defineProps<{
   board: Board;
   tasks: Task[];
-  addTask(task: Partial<Task>): Task;
+  addTask(task: Partial<Task>): Promise<Task>;
 }>();
 // events
 const emit = defineEmits<{
@@ -20,7 +20,11 @@ const emit = defineEmits<{
 // local data
 const tasks = reactive(cloneDeep(props.tasks));
 const board = reactive(cloneDeep(props.board));
-const columns = reactive<Column[]>(JSON.parse(board.order as string));
+const columns = reactive<Column[]>(
+  typeof board.order === "string"
+    ? JSON.parse(board.order as string)
+    : board.order
+);
 // methods
 const addColumn = () => {
   columns.push({
@@ -28,15 +32,21 @@ const addColumn = () => {
     title: "New Column",
     taskIds: [],
   });
-}
+};
 
 watch(columns, () => {
   emit(
     "update",
-    cloneDeep({ ...board, order: JSON.stringify(toRaw(columns)) })
+    cloneDeep({ ...props.board, order: JSON.stringify(toRaw(columns)) })
   );
 });
-const addTask = async ({ column, title }: { column: Column; title: string }) => {
+const addTask = async ({
+  column,
+  title,
+}: {
+  column: Column;
+  title: string;
+}) => {
   const newTask = { title };
   try {
     const savedTask = await props.addTask(newTask);
@@ -45,11 +55,11 @@ const addTask = async ({ column, title }: { column: Column; title: string }) => 
   } catch (error) {
     alerts.error("Error creating task!");
   }
-}
+};
 </script>
 
 <template>
-  <div class="flex py-12 items-start">
+  <div class="flex py-12 items-start max-w-full overflow-x-auto">
     <draggable
       :list="columns"
       group="columns"
@@ -61,11 +71,19 @@ const addTask = async ({ column, title }: { column: Column; title: string }) => 
           class="column bg-gray-100 flex flex-col justify-between rounded-lg px-3 py-3 rounded mr-4 w-[300px]"
         >
           <div>
-            <h3>{{ column.title }}</h3>
+            <h3>
+              <input
+                type="text"
+                class="bg-transparent mb-2"
+                :value="column.title"
+                @keydown.enter="($event.target as HTMLInputElement).blur()"
+                @blur="column.title = ($event.target as HTMLInputElement).value"
+              />
+            </h3>
             <draggable
               :list="column.taskIds"
               group="tasks"
-              item-key="uid"
+              item-key="id"
               :animation="200"
               ghost-class="ghost-card"
               class="min-h-[400px]"
@@ -90,6 +108,11 @@ const addTask = async ({ column, title }: { column: Column; title: string }) => 
         </div>
       </template>
     </draggable>
-    <button class="text-gray-500" @click="addColumn">New Column +</button>
+    <button
+      class="text-gray-500 whitespace-nowrap pr-10 block"
+      @click="addColumn"
+    >
+      New Column +
+    </button>
   </div>
 </template>

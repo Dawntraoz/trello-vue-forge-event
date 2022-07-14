@@ -1,16 +1,19 @@
 <script setup lang="ts">
 import { ref, nextTick } from "vue";
 import { Input as KInput } from "@progress/kendo-vue-inputs";
+
 const active = ref(false);
 const input = ref<HTMLInputElement | null>(null);
 const value = ref("");
+
 const emit = defineEmits<{
   (e: "create", payload: string): void;
   (e: "cancel"): void;
 }>();
+
 const handleActivate = () => {
   active.value = true;
-  nextTick(() => input.value.focus());
+  nextTick(() => input.value?.focus());
 };
 const handleEnter = () => {
   emit("create", value.value);
